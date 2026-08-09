@@ -61,45 +61,92 @@ function initAudioMode() {
   chrome.runtime.sendMessage({ type: "JARVIS_POPUP_READY" });
 }
 
-function speakBriefing(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.pitch = VOICE_PITCH;
-  utterance.rate = VOICE_RATE;
+// Cycled (not random) per-sentence pitch/rate offsets so consecutive
+// sentences don't land on the same inflection, breaking up the flat,
+// monotone cadence of a single long utterance without sounding erratic.
+const SENTENCE_CADENCE = [
+  { pitch: 0.02, rate: 0.015 },
+  { pitch: -0.015, rate: -0.01 },
+  { pitch: 0.01, rate: 0.02 },
+  { pitch: -0.02, rate: 0.005 },
+];
 
+const SENTENCE_SPLIT_PATTERN = /(?<=[.!?])\s+(?=[A-Z"'])/;
+
+function speakBriefing(text) {
   const voice = selectBritishMaleVoice();
-  if (voice) {
-    utterance.voice = voice;
-  } else {
-    utterance.lang = "en-GB";
+  const sentences = text.split(SENTENCE_SPLIT_PATTERN).filter((s) => s.trim().length > 0);
+
+  if (!sentences.length) {
+    window.close();
+    return;
   }
 
-  const closeWindow = () => setTimeout(() => window.close(), 400);
-  utterance.onend = closeWindow;
-  utterance.onerror = closeWindow;
+  let remaining = sentences.length;
+  const finishSentence = () => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      setTimeout(() => window.close(), 400);
+    }
+  };
 
-  window.speechSynthesis.speak(utterance);
+  sentences.forEach((rawSentence, index) => {
+    const sentence = rawSentence.trim();
+    const utterance = new SpeechSynthesisUtterance(sentence);
+
+    if (voice) {
+      utterance.voice = voice;
+    } else {
+      utterance.lang = "en-GB";
+    }
+
+    const cadence = SENTENCE_CADENCE[index % SENTENCE_CADENCE.length];
+    const emphasis = /[!?]$/.test(sentence) ? 0.03 : 0;
+
+    utterance.pitch = clampVoiceParam(VOICE_PITCH + cadence.pitch + emphasis);
+    utterance.rate = clampVoiceParam(VOICE_RATE + cadence.rate + emphasis / 2);
+
+    utterance.onend = finishSentence;
+    utterance.onerror = finishSentence;
+
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+function clampVoiceParam(value) {
+  return Math.min(2, Math.max(0.1, value));
 }
 
 /**
  * Voice lists load asynchronously in Chrome, so if getVoices() returns
  * nothing yet we fall back to lang="en-GB" on the utterance and let the
- * synthesis engine pick its own default British voice.
+ * synthesis engine pick its own default British voice. Ranked roughly by
+ * how natural each tier tends to sound: OS-level neural voices first,
+ * then Chrome's network-quality voice, then legacy compact voices.
  */
+const VOICE_QUALITY_PATTERNS = [
+  /Natural/i, // Windows 11 neural voices, e.g. "Microsoft Ryan Online (Natural)"
+  /Enhanced|Premium/i, // macOS enhanced/premium voices, e.g. "Daniel (Enhanced)"
+  /Google UK English Male/i, // Chrome's network-quality British voice
+  /Microsoft Ryan|Microsoft George|Microsoft Thomas/i,
+  /Daniel/i,
+];
+
 function selectBritishMaleVoice() {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) {
     return null;
   }
 
-  const byNamePreference = voices.find((v) =>
-    /Google UK English Male|Microsoft Ryan|Microsoft George|Daniel/i.test(v.name)
-  );
-  if (byNamePreference) return byNamePreference;
+  const british = voices.filter((v) => /en-GB|en_GB/i.test(v.lang));
+  const pool = british.length ? british : voices;
 
-  const anyBritish = voices.find((v) => /en-GB|en_GB/i.test(v.lang));
-  if (anyBritish) return anyBritish;
+  for (const pattern of VOICE_QUALITY_PATTERNS) {
+    const match = pool.find((v) => pattern.test(v.name));
+    if (match) return match;
+  }
 
-  return null;
+  return pool[0] || null;
 }
 
 /**
