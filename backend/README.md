@@ -1,0 +1,80 @@
+# Jarvis Briefing Service
+
+A thin backend for Project Jarvis. It holds CRM credentials centrally (never
+on an employee's laptop), pulls lead metrics on a schedule for every
+configured salesperson, compiles the same briefing script the Chrome
+extension speaks, and delivers it via Slack and/or email.
+
+This is the "phase 1" of the backend route discussed alongside the Chrome
+extension: computing and delivering the briefing as text/Slack now, with
+the option to bolt on real audio later (a phone call via a TTS provider, or
+a thin client that just plays back the text) without reworking anything
+here — delivery is decoupled from script generation by design.
+
+## Setup
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+2. Copy the env template and fill in real values:
+   ```
+   cp .env.example .env
+   ```
+   At minimum, set `BACKEND_API_KEY` (e.g. `openssl rand -hex 32`) — every
+   admin/trigger endpoint rejects requests without it.
+3. Copy the team config template and add your real salespeople:
+   ```
+   cp config/team.example.json config/team.json
+   ```
+   `config/team.json` holds real CRM tokens — it's already gitignored. Do
+   not commit it. In production, load it from a secrets manager or mount it
+   as a secret file instead of shipping it with the deploy.
+4. Configure at least one delivery channel per person:
+   - **Slack**: either a per-person `delivery.slack.webhookUrl` (an
+     [Incoming Webhook](https://api.slack.com/messaging/webhooks), no bot
+     needed), or set `SLACK_BOT_TOKEN` in `.env` and a per-person
+     `delivery.slack.userId` to DM them directly.
+   - **Email**: set `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASS` in
+     `.env`, and each person's `delivery.email.to`.
+5. Start it:
+   ```
+   npm start
+   ```
+
+## What runs on a schedule
+
+`BRIEFING_CRON` (default `0 8 * * 1-5`, 8am weekdays, server local time)
+fires once for the whole team — every configured salesperson gets briefed
+in the same run. Per-person/per-timezone scheduling isn't implemented yet;
+today everyone shares one cron.
+
+## API
+
+Every route except `/health` requires `Authorization: Bearer <BACKEND_API_KEY>`.
+
+- `GET /health` — liveness check, no auth required.
+- `POST /trigger` — body `{ "name": "Alex Reyes", "isTest": true }`. Runs
+  the pipeline immediately for one person. `isTest: true` uses randomized
+  mock metrics instead of hitting the real CRM (mirrors the extension's
+  "Test Briefing Audio" button).
+- `GET /briefings` — the latest briefing recorded for every salesperson.
+- `GET /briefings/:name` — the latest briefing for one salesperson.
+
+Example manual test:
+```
+curl -X POST http://localhost:3000/trigger \
+  -H "Authorization: Bearer $BACKEND_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alex Reyes", "isTest": true}'
+```
+
+## Known limitations (MVP)
+
+- Briefing history is in-memory only (`src/store.js`) — it resets on
+  restart. Fine for "what's the latest briefing," not for historical
+  reporting; swap in a real database if that's needed later.
+- One shared cron schedule for the whole team, not per-person timezones.
+- Monday.com metrics are a best-effort heuristic (see `src/crm/monday.js`)
+  since Monday boards have no canonical "deal" object — the same caveat
+  that applies in the Chrome extension.
