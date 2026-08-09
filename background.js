@@ -75,6 +75,19 @@ async function runJarvisPipeline({ isTest }) {
 
   const script = generateJarvisScript(name, metrics.openLeads, metrics.hotDeals);
 
+  // Persisted so the dashboard HUD can display the same numbers and wording
+  // Jarvis just spoke, even after the audio window has closed.
+  await chrome.storage.local.set({
+    lastBriefing: {
+      text: script,
+      openLeads: metrics.openLeads,
+      hotDeals: metrics.hotDeals,
+      salespersonName: name,
+      timestamp: Date.now(),
+      isTest,
+    },
+  });
+
   await deliverBriefingAudio(script);
 }
 

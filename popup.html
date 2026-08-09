@@ -13,6 +13,7 @@
     --text: #d7fff2;
     --text-dim: #6ea79b;
     --danger: #ff5d5d;
+    --amber: #ffb020;
   }
 
   * {
@@ -116,6 +117,122 @@
 
   .field.hidden {
     display: none;
+  }
+
+  /* --- Mission HUD --- */
+  .hud {
+    margin-bottom: 16px;
+  }
+
+  .hud-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  .status-dot.idle {
+    background: var(--text-dim);
+    box-shadow: none;
+    animation: none;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  #statusText {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .hud-sync {
+    margin-left: auto;
+    opacity: 0.7;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .kpi-tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .kpi-tile.kpi-hot {
+    border-color: rgba(255, 176, 32, 0.35);
+  }
+
+  .kpi-tile.kpi-hot .kpi-value {
+    color: var(--amber);
+  }
+
+  .kpi-label {
+    margin-top: 6px;
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .briefing-readout {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+  }
+
+  .readout-label {
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .readout-text {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text);
+    max-height: 110px;
+    overflow-y: auto;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
   }
 
   button {
@@ -241,6 +358,34 @@
 
   <main>
     <div id="dashboard">
+      <div class="hud">
+        <div class="hud-status">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">SYSTEMS ONLINE</span>
+          <span class="hud-sync" id="lastSync">Never synced</span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-tile" id="openLeadsTile">
+            <div class="kpi-value" id="openLeadsValue">—</div>
+            <div class="kpi-label">Open Leads</div>
+          </div>
+          <div class="kpi-tile kpi-hot" id="hotDealsTile">
+            <div class="kpi-value" id="hotDealsValue">—</div>
+            <div class="kpi-label">Hot Deals</div>
+          </div>
+        </div>
+
+        <div class="briefing-readout">
+          <div class="readout-label">Last Briefing</div>
+          <div class="readout-text" id="briefingText">
+            No briefing delivered yet. Click "Test Briefing Audio" below, or wait for the next browser startup.
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="field">
         <label for="salespersonName">Salesperson Name</label>
         <input type="text" id="salespersonName" placeholder="e.g. Alex Reyes" autocomplete="off" />

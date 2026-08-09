@@ -121,6 +121,32 @@ function initDashboardMode() {
   const testButton = document.getElementById("testButton");
   const statusLine = document.getElementById("statusLine");
 
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  const lastSync = document.getElementById("lastSync");
+  const openLeadsValue = document.getElementById("openLeadsValue");
+  const hotDealsValue = document.getElementById("hotDealsValue");
+  const briefingText = document.getElementById("briefingText");
+
+  function renderHud(lastBriefing, hasToken) {
+    if (!lastBriefing) {
+      openLeadsValue.textContent = "—";
+      hotDealsValue.textContent = "—";
+      lastSync.textContent = "Never synced";
+      briefingText.textContent =
+        'No briefing delivered yet. Click "Test Briefing Audio" below, or wait for the next browser startup.';
+    } else {
+      openLeadsValue.textContent = lastBriefing.openLeads;
+      hotDealsValue.textContent = lastBriefing.hotDeals;
+      lastSync.textContent = formatRelativeTime(lastBriefing.timestamp);
+      briefingText.textContent = lastBriefing.text;
+    }
+
+    const online = Boolean(hasToken);
+    statusText.textContent = online ? "SYSTEMS ONLINE" : "AWAITING CONFIGURATION";
+    statusDot.classList.toggle("idle", !online);
+  }
+
   function applyProviderUI(provider) {
     const meta = PROVIDER_META[provider] || PROVIDER_META.hubspot;
 
@@ -137,7 +163,7 @@ function initDashboardMode() {
   }
 
   chrome.storage.local.get(
-    ["salespersonName", "crmProvider", "crmApiToken", "crmInstanceUrl", "crmBoardId"],
+    ["salespersonName", "crmProvider", "crmApiToken", "crmInstanceUrl", "crmBoardId", "lastBriefing"],
     (result) => {
       if (result.salespersonName) nameInput.value = result.salespersonName;
       if (result.crmApiToken) tokenInput.value = result.crmApiToken;
@@ -147,8 +173,24 @@ function initDashboardMode() {
       const provider = result.crmProvider && PROVIDER_META[result.crmProvider] ? result.crmProvider : "hubspot";
       providerSelect.value = provider;
       applyProviderUI(provider);
+
+      renderHud(result.lastBriefing, Boolean(result.crmApiToken));
     }
   );
+
+  // Keeps the HUD numbers and readout in sync with the audio the moment a
+  // briefing completes, if the dashboard happens to be open when it runs.
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local") return;
+
+    if (changes.lastBriefing) {
+      renderHud(changes.lastBriefing.newValue, Boolean(tokenInput.value.trim()));
+    }
+    if (changes.crmApiToken) {
+      statusText.textContent = changes.crmApiToken.newValue ? "SYSTEMS ONLINE" : "AWAITING CONFIGURATION";
+      statusDot.classList.toggle("idle", !changes.crmApiToken.newValue);
+    }
+  });
 
   providerSelect.addEventListener("change", () => {
     applyProviderUI(providerSelect.value);
@@ -173,6 +215,19 @@ function initDashboardMode() {
     setStatus(statusLine, "Dispatching test briefing…", "ok");
     chrome.alarms.create(TEST_ALARM_NAME, { delayInMinutes: 0.02 });
   });
+}
+
+function formatRelativeTime(timestamp) {
+  const diffMinutes = Math.round((Date.now() - timestamp) / 60000);
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
 }
 
 function setStatus(element, message, kind) {
