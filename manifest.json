@@ -8,7 +8,9 @@
   "host_permissions": [
     "https://*.hubapi.com/*",
     "https://*.salesforce.com/*",
-    "https://*.my.salesforce.com/*"
+    "https://*.my.salesforce.com/*",
+    "https://*.dynamics.com/*",
+    "https://api.monday.com/*"
   ],
   "background": {
     "service_worker": "background.js"

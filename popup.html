@@ -90,9 +90,32 @@
     outline: none;
   }
 
-  .field input:focus {
+  .field input:focus,
+  .field select:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent-dim);
+  }
+
+  .field select {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .field .hint {
+    opacity: 0.6;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .field.hidden {
+    display: none;
   }
 
   button {
@@ -224,8 +247,28 @@
       </div>
 
       <div class="field">
-        <label for="crmApiToken">CRM API Private Access Token</label>
+        <label for="crmProvider">CRM Provider</label>
+        <select id="crmProvider">
+          <option value="hubspot">HubSpot</option>
+          <option value="salesforce">Salesforce</option>
+          <option value="dynamics">Microsoft Dynamics 365</option>
+          <option value="monday">Monday.com</option>
+        </select>
+      </div>
+
+      <div class="field hidden" id="instanceUrlField">
+        <label for="crmInstanceUrl" id="instanceUrlLabel">Instance URL</label>
+        <input type="text" id="crmInstanceUrl" placeholder="https://yourorg.my.salesforce.com" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label for="crmApiToken" id="tokenLabel">CRM API Private Access Token</label>
         <input type="password" id="crmApiToken" placeholder="pat-••••••••••••••••" autocomplete="off" />
+      </div>
+
+      <div class="field hidden" id="boardIdField">
+        <label for="crmBoardId">Board ID <span class="hint">(optional, auto-detected)</span></label>
+        <input type="text" id="crmBoardId" placeholder="e.g. 1234567890" autocomplete="off" />
       </div>
 
       <button id="initButton" type="button">Initialize Systems</button>

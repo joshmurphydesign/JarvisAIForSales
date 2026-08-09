@@ -2,6 +2,37 @@ const VOICE_PITCH = 0.9;
 const VOICE_RATE = 0.95;
 const TEST_ALARM_NAME = "testBriefing";
 
+const PROVIDER_META = {
+  hubspot: {
+    tokenLabel: "CRM API Private Access Token",
+    tokenPlaceholder: "pat-••••••••••••••••",
+    showInstanceUrl: false,
+    showBoardId: false,
+  },
+  salesforce: {
+    tokenLabel: "Access Token",
+    tokenPlaceholder: "00D••••••••••••••••",
+    showInstanceUrl: true,
+    instanceLabel: "Instance URL",
+    instancePlaceholder: "https://yourorg.my.salesforce.com",
+    showBoardId: false,
+  },
+  dynamics: {
+    tokenLabel: "Access Token",
+    tokenPlaceholder: "eyJ0eXAiOi••••••••••",
+    showInstanceUrl: true,
+    instanceLabel: "Organization URL",
+    instancePlaceholder: "https://yourorg.crm.dynamics.com",
+    showBoardId: false,
+  },
+  monday: {
+    tokenLabel: "API Token",
+    tokenPlaceholder: "eyJhbGciOi••••••••••",
+    showInstanceUrl: false,
+    showBoardId: true,
+  },
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
 
@@ -78,23 +109,64 @@ function selectBritishMaleVoice() {
  */
 function initDashboardMode() {
   const nameInput = document.getElementById("salespersonName");
+  const providerSelect = document.getElementById("crmProvider");
+  const instanceUrlField = document.getElementById("instanceUrlField");
+  const instanceUrlLabel = document.getElementById("instanceUrlLabel");
+  const instanceUrlInput = document.getElementById("crmInstanceUrl");
+  const tokenLabel = document.getElementById("tokenLabel");
   const tokenInput = document.getElementById("crmApiToken");
+  const boardIdField = document.getElementById("boardIdField");
+  const boardIdInput = document.getElementById("crmBoardId");
   const initButton = document.getElementById("initButton");
   const testButton = document.getElementById("testButton");
   const statusLine = document.getElementById("statusLine");
 
-  chrome.storage.local.get(["salespersonName", "crmApiToken"], (result) => {
-    if (result.salespersonName) nameInput.value = result.salespersonName;
-    if (result.crmApiToken) tokenInput.value = result.crmApiToken;
+  function applyProviderUI(provider) {
+    const meta = PROVIDER_META[provider] || PROVIDER_META.hubspot;
+
+    tokenLabel.textContent = meta.tokenLabel;
+    tokenInput.placeholder = meta.tokenPlaceholder;
+
+    instanceUrlField.classList.toggle("hidden", !meta.showInstanceUrl);
+    if (meta.showInstanceUrl) {
+      instanceUrlLabel.textContent = meta.instanceLabel;
+      instanceUrlInput.placeholder = meta.instancePlaceholder;
+    }
+
+    boardIdField.classList.toggle("hidden", !meta.showBoardId);
+  }
+
+  chrome.storage.local.get(
+    ["salespersonName", "crmProvider", "crmApiToken", "crmInstanceUrl", "crmBoardId"],
+    (result) => {
+      if (result.salespersonName) nameInput.value = result.salespersonName;
+      if (result.crmApiToken) tokenInput.value = result.crmApiToken;
+      if (result.crmInstanceUrl) instanceUrlInput.value = result.crmInstanceUrl;
+      if (result.crmBoardId) boardIdInput.value = result.crmBoardId;
+
+      const provider = result.crmProvider && PROVIDER_META[result.crmProvider] ? result.crmProvider : "hubspot";
+      providerSelect.value = provider;
+      applyProviderUI(provider);
+    }
+  );
+
+  providerSelect.addEventListener("change", () => {
+    applyProviderUI(providerSelect.value);
   });
 
   initButton.addEventListener("click", () => {
     const salespersonName = nameInput.value.trim();
+    const crmProvider = providerSelect.value;
     const crmApiToken = tokenInput.value.trim();
+    const crmInstanceUrl = instanceUrlInput.value.trim();
+    const crmBoardId = boardIdInput.value.trim();
 
-    chrome.storage.local.set({ salespersonName, crmApiToken }, () => {
-      setStatus(statusLine, "Configuration saved. Systems ready.", "ok");
-    });
+    chrome.storage.local.set(
+      { salespersonName, crmProvider, crmApiToken, crmInstanceUrl, crmBoardId },
+      () => {
+        setStatus(statusLine, "Configuration saved. Systems ready.", "ok");
+      }
+    );
   });
 
   testButton.addEventListener("click", () => {
