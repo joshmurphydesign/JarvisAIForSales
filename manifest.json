@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Project Jarvis — AI Sales Briefing Assistant",
+  "version": "1.0.0",
+  "description": "Auditory sales assistant that briefs you on live CRM lead metrics the moment your browser starts.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://*.hubapi.com/*",
+    "https://*.salesforce.com/*",
+    "https://*.my.salesforce.com/*",
+    "https://*.dynamics.com/*",
+    "https://api.monday.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Project Jarvis"
+  }
+}
