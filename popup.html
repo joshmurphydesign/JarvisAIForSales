@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Project Jarvis</title>
+<style>
+  :root {
+    --bg: #0a0e0f;
+    --panel: #10161a;
+    --border: #1f3d3a;
+    --accent: #00e6b8;
+    --accent-dim: #0a5f4f;
+    --text: #d7fff2;
+    --text-dim: #6ea79b;
+    --danger: #ff5d5d;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    width: 340px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Consolas", "SFMono-Regular", "Menlo", monospace;
+    font-size: 13px;
+  }
+
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 230, 184, 0.03) 0px,
+      rgba(0, 230, 184, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header .brand {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+
+  header .subtitle {
+    margin-top: 2px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  main {
+    padding: 16px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent-dim);
+  }
+
+  button {
+    width: 100%;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 11px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  button:last-child {
+    margin-bottom: 0;
+  }
+
+  #initButton {
+    background: var(--accent);
+    color: #04211b;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  #initButton:hover {
+    background: #33f0c8;
+  }
+
+  #testButton {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--accent-dim);
+  }
+
+  #testButton:hover {
+    border-color: var(--accent);
+    background: rgba(0, 230, 184, 0.08);
+  }
+
+  #statusLine {
+    margin-top: 12px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    min-height: 14px;
+    letter-spacing: 0.5px;
+  }
+
+  #statusLine.ok {
+    color: var(--accent);
+  }
+
+  #statusLine.err {
+    color: var(--danger);
+  }
+
+  /* --- Autoplay / speaking mode --- */
+  body.audio-mode main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 16px;
+    text-align: center;
+  }
+
+  body.audio-mode #dashboard {
+    display: none;
+  }
+
+  #speakingIndicator {
+    display: none;
+  }
+
+  body.audio-mode #speakingIndicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .pulse-ring {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .pulse-ring::before {
+    content: "J";
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 20px;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 230, 184, 0.45); }
+    70% { box-shadow: 0 0 0 12px rgba(0, 230, 184, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 230, 184, 0); }
+  }
+
+  #speakingLabel {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <header>
+    <div class="brand">PROJECT JARVIS</div>
+    <div class="subtitle">Auditory Sales Intelligence</div>
+  </header>
+
+  <main>
+    <div id="dashboard">
+      <div class="field">
+        <label for="salespersonName">Salesperson Name</label>
+        <input type="text" id="salespersonName" placeholder="e.g. Alex Reyes" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label for="crmApiToken">CRM API Private Access Token</label>
+        <input type="password" id="crmApiToken" placeholder="pat-••••••••••••••••" autocomplete="off" />
+      </div>
+
+      <button id="initButton" type="button">Initialize Systems</button>
+      <button id="testButton" type="button">Test Briefing Audio</button>
+
+      <div id="statusLine"></div>
+    </div>
+
+    <div id="speakingIndicator">
+      <div class="pulse-ring"></div>
+      <div id="speakingLabel">Jarvis is briefing you…</div>
+    </div>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
