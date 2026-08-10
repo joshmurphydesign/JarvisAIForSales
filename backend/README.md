@@ -44,10 +44,23 @@ here — delivery is decoupled from script generation by design.
 
 ## What runs on a schedule
 
-`BRIEFING_CRON` (default `0 8 * * 1-5`, 8am weekdays, server local time)
-fires once for the whole team — every configured salesperson gets briefed
-in the same run. Per-person/per-timezone scheduling isn't implemented yet;
-today everyone shares one cron.
+Two scheduler modes, set via `SCHEDULER_MODE`:
+
+- **`internal`** (default) — `node-cron` fires inside this process on
+  `BRIEFING_CRON` (default `0 8 * * 1-5`, 8am weekdays, server local time).
+  Requires a host that stays running continuously — a free tier that spins
+  down on inactivity will simply miss the trigger. On Render, this means at
+  least the paid Starter tier ($7/mo as of writing).
+- **`external`** — no in-process cron at all. Point an outside scheduler (a
+  GitHub Actions scheduled workflow, a free service like cron-job.org, etc.)
+  at `POST /trigger-all` on whatever cadence you want. This lets the app run
+  on a host that spins down between requests — e.g. Render's free tier —
+  since the external caller "wakes" it when it hits the endpoint.
+
+Switching between them later is just changing the env var (and your host's
+plan) — no code changes either direction. Either mode briefs every
+configured salesperson in one batch; per-person/per-timezone scheduling
+isn't implemented yet.
 
 ## API
 
@@ -58,6 +71,9 @@ Every route except `/health` requires `Authorization: Bearer <BACKEND_API_KEY>`.
   the pipeline immediately for one person. `isTest: true` uses randomized
   mock metrics instead of hitting the real CRM (mirrors the extension's
   "Test Briefing Audio" button).
+- `POST /trigger-all` — body `{ "isTest": true }` (optional). Runs the
+  pipeline for every configured salesperson in one call. This is what an
+  external scheduler should hit when `SCHEDULER_MODE=external`.
 - `GET /briefings` — the latest briefing recorded for every salesperson.
 - `GET /briefings/:name` — the latest briefing for one salesperson.
 

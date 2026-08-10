@@ -1,3 +1,4 @@
+const config = require("./config");
 const { fetchLeadMetrics, mockLeadMetrics } = require("./crm");
 const { generateJarvisScript } = require("./briefing");
 const { deliverToSlack } = require("./delivery/slack");
@@ -32,4 +33,25 @@ async function runBriefingPipeline(person, { isTest = false } = {}) {
   return briefing;
 }
 
-module.exports = { runBriefingPipeline };
+/**
+ * Runs the pipeline for every configured salesperson in one batch. Shared by
+ * the internal cron scheduler and the external-trigger endpoint (POST
+ * /trigger-all) so both modes brief the whole team the same way. A failure
+ * for one person doesn't stop the rest.
+ */
+async function runAllBriefings({ isTest = false } = {}) {
+  const results = [];
+
+  for (const person of config.team.salespeople) {
+    try {
+      results.push(await runBriefingPipeline(person, { isTest }));
+    } catch (error) {
+      console.error(`[Jarvis] Briefing pipeline threw for ${person.name}:`, error);
+      results.push({ name: person.name, error: error.message });
+    }
+  }
+
+  return results;
+}
+
+module.exports = { runBriefingPipeline, runAllBriefings };

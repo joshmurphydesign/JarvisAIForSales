@@ -2,7 +2,7 @@ const express = require("express");
 const helmet = require("helmet");
 const config = require("./config");
 const store = require("./store");
-const { runBriefingPipeline } = require("./pipeline");
+const { runBriefingPipeline, runAllBriefings } = require("./pipeline");
 
 function requireApiKey(req, res, next) {
   const authHeader = req.get("authorization") || "";
@@ -53,6 +53,22 @@ function createServer() {
       res.json(briefing);
     } catch (error) {
       console.error(`[Jarvis] Manual trigger failed for ${name}:`, error);
+      res.status(500).json({ error: "Briefing pipeline failed. Check server logs." });
+    }
+  });
+
+  // Intended target for an external scheduler when SCHEDULER_MODE=external
+  // (e.g. a GitHub Actions cron or cron-job.org hitting this daily). Briefs
+  // every configured salesperson in one call — the same batch the internal
+  // cron would otherwise run.
+  app.post("/trigger-all", requireApiKey, async (req, res) => {
+    const { isTest } = req.body || {};
+
+    try {
+      const results = await runAllBriefings({ isTest: Boolean(isTest) });
+      res.json(results);
+    } catch (error) {
+      console.error("[Jarvis] /trigger-all failed:", error);
       res.status(500).json({ error: "Briefing pipeline failed. Check server logs." });
     }
   });

@@ -24,10 +24,19 @@ function loadTeamConfig() {
   return parsed;
 }
 
+const SCHEDULER_MODE = process.env.SCHEDULER_MODE === "external" ? "external" : "internal";
+
 const config = {
   port: Number(process.env.PORT) || 3000,
   apiKey: process.env.BACKEND_API_KEY || "",
   briefingCron: process.env.BRIEFING_CRON || "0 8 * * 1-5",
+  // "internal": node-cron fires inside this process — needs an always-on host.
+  // "external": no in-process cron; an outside scheduler (e.g. a GitHub
+  // Actions cron, or a free service like cron-job.org) hits POST
+  // /trigger-all instead, so the app can run on a free tier that spins down
+  // between requests. Switching later is just this one env var — no code
+  // changes needed either direction.
+  schedulerMode: SCHEDULER_MODE,
   slack: {
     botToken: process.env.SLACK_BOT_TOKEN || "",
   },
