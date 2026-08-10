@@ -1,0 +1,40 @@
+{
+  "salespeople": [
+    {
+      "name": "Alex Reyes",
+      "crmProvider": "hubspot",
+      "crmApiToken": "pat-REPLACE-ME",
+      "crmInstanceUrl": "",
+      "crmBoardId": "",
+      "delivery": {
+        "slack": {
+          "enabled": true,
+          "webhookUrl": "https://hooks.slack.com/services/REPLACE/ME/TOKEN",
+          "userId": ""
+        },
+        "email": {
+          "enabled": true,
+          "to": "alex@example.com"
+        }
+      }
+    },
+    {
+      "name": "Priya Nair",
+      "crmProvider": "salesforce",
+      "crmApiToken": "REPLACE-ME-ACCESS-TOKEN",
+      "crmInstanceUrl": "https://yourorg.my.salesforce.com",
+      "crmBoardId": "",
+      "delivery": {
+        "slack": {
+          "enabled": false,
+          "webhookUrl": "",
+          "userId": "U01234567"
+        },
+        "email": {
+          "enabled": true,
+          "to": "priya@example.com"
+        }
+      }
+    }
+  ]
+}
