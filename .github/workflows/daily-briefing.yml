@@ -1,0 +1,50 @@
+name: Jarvis Daily Briefing
+
+# Free-tier-compatible scheduler for the Jarvis backend (SCHEDULER_MODE=external).
+# This workflow is the "outside scheduler" the backend's README describes:
+# it calls POST /trigger-all on a schedule, which both briefs the whole team
+# and wakes a spun-down free Render instance to do it.
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   JARVIS_BACKEND_URL      e.g. https://your-service.onrender.com
+#   JARVIS_BACKEND_API_KEY  must match BACKEND_API_KEY set on the backend
+
+on:
+  schedule:
+    # GitHub Actions cron is always UTC and does NOT adjust for daylight
+    # saving time. 12:00 UTC = 8:00 AM US Eastern during EST (winter);
+    # 7:00 AM during EDT (summer). Adjust this to match your desired local
+    # time, or update it twice a year around DST changes if you want it
+    # pinned to a specific local hour.
+    - cron: "0 12 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      isTest:
+        description: "Use mock metrics instead of hitting real CRMs"
+        type: boolean
+        default: false
+
+jobs:
+  trigger-briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Jarvis backend /trigger-all
+        run: |
+          IS_TEST="${{ github.event.inputs.isTest || 'false' }}"
+
+          HTTP_STATUS=$(curl -sS -o response.json -w "%{http_code}" \
+            --max-time 120 --retry 2 --retry-delay 5 \
+            -X POST "${{ secrets.JARVIS_BACKEND_URL }}/trigger-all" \
+            -H "Authorization: Bearer ${{ secrets.JARVIS_BACKEND_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"isTest\": $IS_TEST}")
+
+          echo "Response body:"
+          cat response.json
+
+          if [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "Request failed with HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          echo "Briefing triggered successfully (HTTP $HTTP_STATUS)."

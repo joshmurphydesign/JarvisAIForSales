@@ -62,6 +62,22 @@ plan) — no code changes either direction. Either mode briefs every
 configured salesperson in one batch; per-person/per-timezone scheduling
 isn't implemented yet.
 
+### Running `external` mode on a free host (e.g. Render's free tier)
+
+A ready-made scheduler for this lives at
+[`.github/workflows/daily-briefing.yml`](../.github/workflows/daily-briefing.yml)
+in the repo root. It calls `POST /trigger-all` on a cron schedule (default
+`0 12 * * 1-5` UTC — adjust to your timezone; GitHub Actions cron doesn't
+follow DST), which both briefs the team and wakes a spun-down free instance.
+
+To enable it, add two repo secrets (Settings -> Secrets and variables ->
+Actions):
+- `JARVIS_BACKEND_URL` — e.g. `https://your-service.onrender.com`
+- `JARVIS_BACKEND_API_KEY` — must match `BACKEND_API_KEY` set on the backend
+
+You can also trigger it manually from the Actions tab (`workflow_dispatch`,
+with an `isTest` checkbox) to verify delivery before relying on the schedule.
+
 ## API
 
 Every route except `/health` requires `Authorization: Bearer <BACKEND_API_KEY>`.
